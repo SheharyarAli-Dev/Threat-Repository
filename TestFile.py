@@ -224,4 +224,83 @@ if __name__ == "__main__":
     # FLAW 17: Debug mode exposes a development debugger
     # Keep this application bound to localhost only.
     app.run(host="127.0.0.1", port=5000, debug=True)
-#Check
+# Connect to the database
+conn = sqlite3.connect("users.db")
+cursor = conn.cursor()
+
+# Create a sample table
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY,
+        username TEXT,
+        password TEXT
+    )
+""")
+
+cursor.execute(
+    "INSERT INTO users (username, password) VALUES (?, ?)",
+    ("alice", "password123")
+)
+conn.commit()
+
+# Vulnerable login function
+def login(username, password):
+    query = (
+        "SELECT * FROM users WHERE username = '"
+        + username
+        + "' AND password = '"
+        + password
+        + "'"
+    )
+
+    print("Executing query:", query)
+    cursor.execute(query)
+
+    result = cursor.fetchone()
+
+    if result:
+        print("Login successful!")
+    else:
+        print("Invalid username or password.")
+
+# Get user input
+username = input("Enter username: ")
+password = input("Enter password: ")
+
+login(username, password)
+
+conn.close()
+Why is this vulnerable?
+The following code is the problem:
+
+python
+query = (
+    "SELECT * FROM users WHERE username = '"
+    + username
+    + "' AND password = '"
+    + password
+    + "'"
+)
+Direct concatenation: User input is inserted into SQL without proper parameterization.
+
+SQL injection risk: Special SQL characters in the input can change the query's intended logic.
+
+Potential impact: An attacker may bypass authentication or manipulate database queries, depending on the database and application context.
+
+How to fix it
+Use parameterized queries instead:
+
+python
+def login(username, password):
+    query = """
+        SELECT * FROM users
+        WHERE username = ? AND password = ?
+    """
+
+    cursor.execute(query, (username, password))
+    result = cursor.fetchone()
+
+    if result:
+        print("Login successful!")
+    else:
+        print("Invalid username or password.")
