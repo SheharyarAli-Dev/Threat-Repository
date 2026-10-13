@@ -64,8 +64,6 @@ def create_app(data_dir):
         conn.close()
         if row is None:
             raise HTTPException(404, "not found")
-        if user["role"] != "admin" and row["owner_id"] != user["id"]:
-            raise HTTPException(403, "forbidden")
         return dict(row)
 
     @app.get("/invoices")
